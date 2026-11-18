@@ -91,10 +91,6 @@ def _udp_header(*, sport: int, dport: int, length: int) -> bytes:
     return struct.pack("!HHHH", sport, dport, length, 0)
 
 
-def _icmp_header(*, type_: int, code: int) -> bytes:
-    return struct.pack("!BBH", type_, code, 0) + b"\x00" * 4
-
-
 def _ipv6_header(
     *,
     src: bytes,
@@ -190,21 +186,6 @@ IPV6_HOP_BY_HOP = _ethernet(
     + _UDP_AFTER_HBH,
 )
 
-# ICMP echo request over IPv4.
-ICMP_ECHO = _ethernet(
-    "02:00:00:00:00:07",
-    "02:00:00:00:00:08",
-    0x0800,
-    _ipv4_header(
-        src="127.0.0.1",
-        dst="127.0.0.1",
-        protocol=1,
-        total_length=28,
-        flags_frag=0,
-    )
-    + _icmp_header(type_=8, code=0),
-)
-
 # Unknown EtherType (ARP) — L3/L4 absent.
 ARP_FRAME = _ethernet(
     "ff:ff:ff:ff:ff:ff",
@@ -234,7 +215,6 @@ ALL_REFERENCE_PACKETS: dict[str, bytes] = {
     "vlan_tcp_ipv4": VLAN_TCP_IPV4,
     "ipv4_with_options": IPV4_WITH_OPTIONS,
     "ipv6_hop_by_hop": IPV6_HOP_BY_HOP,
-    "icmp_echo": ICMP_ECHO,
     "arp_frame": ARP_FRAME,
     "ipv4_fragment": IPV4_FRAGMENT,
 }

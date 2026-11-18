@@ -8,7 +8,6 @@ from sniffer.filter import FilterSyntaxError, parse_filter
 from sniffer.parse import parse
 from tests.packets import (
     ARP_FRAME,
-    ICMP_ECHO,
     IPV4_WITH_OPTIONS,
     IPV6_HOP_BY_HOP,
     TCP_IPV4_SYN,
@@ -16,15 +15,13 @@ from tests.packets import (
 )
 
 
-def test_proto_tcp_udp_icmp() -> None:
+def test_proto_tcp_udp() -> None:
     tcp = parse(TCP_IPV4_SYN)
     udp = parse(UDP_IPV6_DNS)
-    icmp = parse(ICMP_ECHO)
     assert parse_filter("tcp").match(tcp)
     assert not parse_filter("tcp").match(udp)
     assert parse_filter("udp").match(udp)
-    assert parse_filter("icmp").match(icmp)
-    assert not parse_filter("icmp").match(tcp)
+    assert not parse_filter("udp").match(tcp)
 
 
 def test_ip4_ip6() -> None:
@@ -92,6 +89,7 @@ def test_arp_matches_nothing_useful() -> None:
     [
         ("tcp or udp", "or"),
         ("not tcp", "not"),
+        ("icmp", "icmp"),
         ("host", None),
         ("port", None),
         ("src", None),

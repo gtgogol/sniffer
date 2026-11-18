@@ -10,7 +10,6 @@ from sniffer.parse import parse
 from tests.packets import (
     ALL_REFERENCE_PACKETS,
     ARP_FRAME,
-    ICMP_ECHO,
     IPV4_FRAGMENT,
     IPV4_WITH_OPTIONS,
     IPV6_HOP_BY_HOP,
@@ -89,19 +88,6 @@ def test_ipv6_hop_by_hop() -> None:
     assert info.udp.dst_port == 53
 
 
-def test_icmp_echo() -> None:
-    info = parse(ICMP_ECHO)
-    assert not info.truncated and not info.malformed
-    assert info.ipv4 is not None
-    assert info.ipv4.protocol == 1
-    assert info.icmp is not None
-    assert info.icmp.type == 8
-    assert info.icmp.code == 0
-    assert info.icmp.is_v6 is False
-    assert info.tcp is None
-    assert info.udp is None
-
-
 def test_unknown_ethertype_arp() -> None:
     info = parse(ARP_FRAME)
     assert not info.truncated and not info.malformed
@@ -111,7 +97,6 @@ def test_unknown_ethertype_arp() -> None:
     assert info.ipv6 is None
     assert info.tcp is None
     assert info.udp is None
-    assert info.icmp is None
 
 
 def test_ipv4_fragment_skips_l4() -> None:

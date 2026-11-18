@@ -12,7 +12,7 @@ _TOKEN = re.compile(
     r"""
     \s*(?:
         (?P<and>and)
-      | (?P<kw>tcp|udp|icmp|ip4|ip6|host|src|dst|port)
+      | (?P<kw>tcp|udp|ip4|ip6|host|src|dst|port)
       | (?P<addr>[0-9a-fA-F:.]+)
       | (?P<num>\d+)
       | (?P<bad>\S+)
@@ -35,15 +35,13 @@ class FilterSyntaxError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class _Proto:
-    name: str  # tcp | udp | icmp | ip4 | ip6
+    name: str  # tcp | udp | ip4 | ip6
 
     def match(self, info: PacketInfo) -> bool:
         if self.name == "tcp":
             return info.tcp is not None
         if self.name == "udp":
             return info.udp is not None
-        if self.name == "icmp":
-            return info.icmp is not None
         if self.name == "ip4":
             return info.ipv4 is not None
         if self.name == "ip6":
@@ -108,7 +106,7 @@ class Filter:
 def parse_filter(expr: str) -> Filter:
     """Parse an ``and``-joined filter expression into a ``Filter``.
 
-    Supported atoms: ``tcp``, ``udp``, ``icmp``, ``ip4``, ``ip6``,
+    Supported atoms: ``tcp``, ``udp``, ``ip4``, ``ip6``,
     ``host ADDR``, ``src host ADDR``, ``dst host ADDR``,
     ``port N``, ``src port N``, ``dst port N``.
     """
@@ -145,7 +143,7 @@ def parse_filter(expr: str) -> Filter:
             tok = tokens[i]
             expect_and = False
 
-        if tok in ("tcp", "udp", "icmp", "ip4", "ip6"):
+        if tok in ("tcp", "udp", "ip4", "ip6"):
             conditions.append(_Proto(tok))
             i += 1
         elif tok in ("src", "dst"):

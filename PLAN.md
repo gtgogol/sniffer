@@ -22,12 +22,12 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [ ] Check (root): `sudo python3 -m sniffer -i eth0 -w out.pcap -c 20 -q && tcpdump -nr out.pcap | wc -l` gives 20.
 
 ## Stage 3. Header parsing
-- [x] `PacketInfo` and nested dataclasses for Ethernet, IPv4, IPv6, TCP, UDP, ICMP; `truncated` and `malformed` flags.
+- [x] `PacketInfo` and nested dataclasses for Ethernet, IPv4, IPv6, TCP, UDP; `truncated` and `malformed` flags.
 - [x] Ethernet + one VLAN tag.
 - [x] IPv4 with IHL and fragmentation.
 - [x] IPv6 with extension header skipping.
-- [x] TCP (flags, seq/ack), UDP; ICMP/ICMPv6 type and code only.
-- [x] `tests/packets.py`: bytes of reference packets (TCP/IPv4 SYN, UDP/IPv6 DNS, VLAN, IPv4 with options, IPv6 with Hop-by-Hop, ICMP echo).
+- [x] TCP (flags, seq/ack), UDP.
+- [x] `tests/packets.py`: bytes of reference packets (TCP/IPv4 SYN, UDP/IPv6 DNS, VLAN, IPv4 with options, IPv6 with Hop-by-Hop).
 - [x] `test_parse.py`: fields match the reference; a packet truncated at every length from 0 to full does not raise; unknown EtherType.
 
 ## Stage 4. Real-time output
@@ -65,3 +65,4 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 The agent records deviations from `AGENTS.md` here, with the date and the reason.
 
 - 2026-11-18: Stage 6 live capture benchmark (`ping -f` / `iperf3` on `lo`) was not run — host is macOS without `AF_PACKET`. Instead a parse micro-benchmark is in `tests/test_benchmark.py` (reported ~222k pps). Re-run on Linux with root to get real capture pps.
+- 2026-11-18: ICMP/ICMPv6 parsing, filter keyword `icmp`, and related tests/docs removed per project owner request. IP packets with proto 1/58 still show as `IPv4/IPv6 proto=N` without L4 details.

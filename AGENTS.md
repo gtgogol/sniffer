@@ -64,7 +64,7 @@ python3 -m sniffer [-i IFACE] [-w FILE.pcap] [-c COUNT] [-s SNAPLEN] [-p] [-x] [
 | `-f, --filter` | simple filter, see below |
 | `-h, --help` | help |
 
-A filter is an expression of conditions joined by `and`: `tcp`, `udp`, `icmp`, `ip4`, `ip6`, `host ADDR`, `src host ADDR`, `dst host ADDR`, `port N`, `src port N`, `dst port N` (IPv4 and IPv6 addresses, parsed with `ipaddress`). Example: `-f "tcp and port 443 and host 10.0.0.1"`. Support for `or`/`not`/parentheses is optional and left as a later extension. The filter applies both to screen output and to the file.
+A filter is an expression of conditions joined by `and`: `tcp`, `udp`, `ip4`, `ip6`, `host ADDR`, `src host ADDR`, `dst host ADDR`, `port N`, `src port N`, `dst port N` (IPv4 and IPv6 addresses, parsed with `ipaddress`). Example: `-f "tcp and port 443 and host 10.0.0.1"`. Support for `or`/`not`/parentheses is optional and left as a later extension. The filter applies both to screen output and to the file.
 
 Output line format:
 ```
@@ -89,7 +89,7 @@ On `Ctrl+C` (SIGINT) and SIGTERM the utility closes the file cleanly and prints 
 - Ethernet: MAC addresses, EtherType; support one 802.1Q VLAN tag (`0x8100`).
 - IPv4: version, IHL (including options), total length, TTL, protocol, addresses; fragments (offset ≠ 0) are not parsed at L4.
 - IPv6: fixed header plus skipping the Hop-by-Hop (0), Routing (43), Fragment (44), and Destination Options (60) extension headers up to TCP/UDP.
-- TCP: ports, seq/ack, data offset, flags. UDP: ports, length. ICMP/ICMPv6: type and code.
+- TCP: ports, seq/ack, data offset, flags. UDP: ports, length.
 - Network byte order: `struct` formats with the `!` prefix. Addresses via `ipaddress.ip_address(bytes)` or `socket.inet_ntop`.
 
 ## Performance

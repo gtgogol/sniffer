@@ -40,10 +40,6 @@ def format_line(pkt: RawPacket, info: PacketInfo) -> str:
     elif info.udp is not None:
         parts.append("UDP")
         parts.append(f"{src}:{info.udp.src_port} -> {dst}:{info.udp.dst_port}")
-    elif info.icmp is not None:
-        parts.append("ICMPv6" if info.icmp.is_v6 else "ICMP")
-        parts.append(f"{src} -> {dst}")
-        parts.append(f"type={info.icmp.type} code={info.icmp.code}")
     else:
         proto = (
             info.ipv4.protocol if info.ipv4 is not None else info.ipv6.next_header  # type: ignore[union-attr]

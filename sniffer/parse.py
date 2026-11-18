@@ -1,4 +1,4 @@
-"""Ethernet / IPv4 / IPv6 / TCP / UDP / ICMP header parsing."""
+"""Ethernet / IPv4 / IPv6 / TCP / UDP header parsing."""
 
 from __future__ import annotations
 
@@ -11,10 +11,8 @@ ETHERTYPE_IPV4 = 0x0800
 ETHERTYPE_IPV6 = 0x86DD
 ETHERTYPE_VLAN = 0x8100
 
-PROTO_ICMP = 1
 PROTO_TCP = 6
 PROTO_UDP = 17
-PROTO_ICMPV6 = 58
 
 # IPv6 extension headers we skip through.
 IPV6_HOPOPTS = 0
@@ -31,7 +29,6 @@ _IPV4 = struct.Struct("!BBHHHBBH4s4s")
 _IPV6 = struct.Struct("!IHBB16s16s")
 _TCP = struct.Struct("!HHIIHHHH")
 _UDP = struct.Struct("!HHHH")
-_ICMP = struct.Struct("!BBH")
 
 
 def _mac_str(raw: bytes) -> str:
@@ -107,13 +104,6 @@ class UDPInfo:
 
 
 @dataclass(slots=True)
-class ICMPInfo:
-    type: int
-    code: int
-    is_v6: bool = False
-
-
-@dataclass(slots=True)
 class PacketInfo:
     """Parsed view of a single frame. Missing layers are ``None``."""
 
@@ -123,7 +113,6 @@ class PacketInfo:
     ipv6: IPv6Info | None = None
     tcp: TCPInfo | None = None
     udp: UDPInfo | None = None
-    icmp: ICMPInfo | None = None
     truncated: bool = False
     malformed: bool = False
 
@@ -224,7 +213,7 @@ def _parse_ipv4(buf: memoryview, offset: int, info: PacketInfo) -> None:
     # Non-first fragments are not dissected at L4.
     if frag_offset != 0:
         return
-    _parse_l4(buf, l4_offset, protocol, info, is_ipv6=False)
+    _parse_l4(buf, l4_offset, protocol, info)
 
 
 def _parse_ipv6(buf: memoryview, offset: int, info: PacketInfo) -> None:
@@ -249,7 +238,7 @@ def _parse_ipv6(buf: memoryview, offset: int, info: PacketInfo) -> None:
 
     cursor = offset + _IPV6.size
     proto = next_header
-    # Walk known extension headers until TCP/UDP/ICMPv6 or unknown.
+    # Walk known extension headers until TCP/UDP or unknown.
     while proto in _IPV6_SKIP:
         if proto == IPV6_FRAGMENT:
             # Fixed 8-byte Fragment header.
@@ -278,7 +267,7 @@ def _parse_ipv6(buf: memoryview, offset: int, info: PacketInfo) -> None:
         cursor += ext_total
 
     info.ipv6.next_header = proto
-    _parse_l4(buf, cursor, proto, info, is_ipv6=True)
+    _parse_l4(buf, cursor, proto, info)
 
 
 def _parse_l4(
@@ -286,17 +275,11 @@ def _parse_l4(
     offset: int,
     protocol: int,
     info: PacketInfo,
-    *,
-    is_ipv6: bool,
 ) -> None:
     if protocol == PROTO_TCP:
         _parse_tcp(buf, offset, info)
     elif protocol == PROTO_UDP:
         _parse_udp(buf, offset, info)
-    elif protocol == PROTO_ICMP and not is_ipv6:
-        _parse_icmp(buf, offset, info, is_v6=False)
-    elif protocol == PROTO_ICMPV6 and is_ipv6:
-        _parse_icmp(buf, offset, info, is_v6=True)
 
 
 def _parse_tcp(buf: memoryview, offset: int, info: PacketInfo) -> None:
@@ -329,15 +312,6 @@ def _parse_udp(buf: memoryview, offset: int, info: PacketInfo) -> None:
         return
     sport, dport, length, _chk = _UDP.unpack_from(buf, offset)
     info.udp = UDPInfo(src_port=sport, dst_port=dport, length=length)
-
-
-def _parse_icmp(
-    buf: memoryview, offset: int, info: PacketInfo, *, is_v6: bool
-) -> None:
-    if not _need(buf, offset, _ICMP.size, info):
-        return
-    type_, code, _checksum = _ICMP.unpack_from(buf, offset)
-    info.icmp = ICMPInfo(type=type_, code=code, is_v6=is_v6)
 
 
 def format_ip(addr: IPv4Address | IPv6Address) -> str:

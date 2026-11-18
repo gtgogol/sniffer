@@ -7,7 +7,6 @@ from sniffer.output import format_line, hexdump
 from sniffer.parse import parse
 from tests.packets import (
     ARP_FRAME,
-    ICMP_ECHO,
     TCP_IPV4_SYN,
     UDP_IPV6_DNS,
     VLAN_TCP_IPV4,
@@ -51,15 +50,6 @@ def test_format_line_vlan_still_shows_ipv4_tcp() -> None:
     line = format_line(_pkt(data), parse(data))
     assert "IPv4 TCP" in line
     assert "443" in line
-
-
-def test_format_line_icmp() -> None:
-    data = ICMP_ECHO
-    line = format_line(_pkt(data), parse(data))
-    assert "IPv4" in line
-    assert "ICMP" in line
-    assert "127.0.0.1 -> 127.0.0.1" in line
-    assert "type=8 code=0" in line
 
 
 def test_format_line_arp() -> None:
