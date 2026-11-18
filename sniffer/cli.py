@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import sys
 from dataclasses import dataclass
+from datetime import datetime
+
+from sniffer.capture import RawCapture, RawPacket
+
+# Set by SIGINT/SIGTERM handlers; the capture loop checks this flag.
+_stop_requested = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,9 +133,72 @@ def parse_args(argv: list[str] | None = None) -> Args:
     )
 
 
+def _request_stop(signum: int, frame: object | None) -> None:
+    """Signal handler: request a clean exit from the capture loop."""
+    global _stop_requested
+    _stop_requested = True
+
+
+def _install_signal_handlers() -> None:
+    signal.signal(signal.SIGINT, _request_stop)
+    signal.signal(signal.SIGTERM, _request_stop)
+
+
+def _format_simple_line(pkt: RawPacket) -> str:
+    """Minimal one-line summary until full parsing lands in later stages."""
+    ts = datetime.fromtimestamp(pkt.time_ns / 1_000_000_000)
+    stamp = ts.strftime("%H:%M:%S.") + f"{ts.microsecond:06d}"
+    return f"{stamp} {pkt.ifname} len={len(pkt.data)}"
+
+
+def run_capture(args: Args) -> int:
+    """Open the capture socket and run the main loop until stop or count."""
+    global _stop_requested
+    _stop_requested = False
+    _install_signal_handlers()
+
+    # Line-buffered stdout so real-time output is not delayed.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
+
+    captured = 0
+    try:
+        with RawCapture(
+            iface=args.interface,
+            promisc=args.promisc,
+            snaplen=args.snaplen,
+        ) as cap:
+            while not _stop_requested:
+                pkt = cap.read()
+                if pkt is None:
+                    continue
+
+                captured += 1
+                if not args.quiet:
+                    print(_format_simple_line(pkt), flush=True)
+
+                if args.count is not None and captured >= args.count:
+                    break
+    except PermissionError:
+        print(
+            "sniffer: permission denied opening AF_PACKET socket.\n"
+            "Hint: run with root privileges, e.g. "
+            "`sudo python3 -m sniffer ...`",
+            file=sys.stderr,
+        )
+        return 1
+    except (OSError, ValueError) as exc:
+        print(f"sniffer: {exc}", file=sys.stderr)
+        return 1
+
+    print(
+        f"sniffer: captured={captured} passed={captured} written=0",
+        file=sys.stderr,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point used by ``python -m sniffer``."""
-    parse_args(argv)
-    # Capture loop is implemented in later stages.
-    print("sniffer: capture not implemented yet", file=sys.stderr)
-    return 0
+    args = parse_args(argv)
+    return run_capture(args)

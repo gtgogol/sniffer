@@ -8,11 +8,11 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [x] Check: `python3 -m sniffer -h`; a test for argument parsing.
 
 ## Stage 1. Capture via AF_PACKET
-- [ ] `capture.py`: class `RawCapture(iface: str | None, promisc: bool, snaplen: int)` — a context manager; creates `socket(AF_PACKET, SOCK_RAW, ntohs(ETH_P_ALL))` and, when an interface is given, calls `bind((iface, 0))`.
-- [ ] Promiscuous mode: `setsockopt(SOL_PACKET, PACKET_ADD_MEMBERSHIP, struct.pack("iHH8s", ifindex, PACKET_MR_PROMISC, 0, b""))`, with `ifindex` from `socket.if_nametoindex`.
-- [ ] Method `read() -> RawPacket | None` (data, `time_ns` timestamp, ifname, pkttype, hatype); uses `select`/`settimeout` so the loop can react to a stop request.
-- [ ] Clear errors: `PermissionError` (no root), `OSError` for a nonexistent interface.
-- [ ] SIGINT/SIGTERM set a stop flag; the main loop exits cleanly, without a traceback.
+- [x] `capture.py`: class `RawCapture(iface: str | None, promisc: bool, snaplen: int)` — a context manager; creates `socket(AF_PACKET, SOCK_RAW, ntohs(ETH_P_ALL))` and, when an interface is given, calls `bind((iface, 0))`.
+- [x] Promiscuous mode: `setsockopt(SOL_PACKET, PACKET_ADD_MEMBERSHIP, struct.pack("iHH8s", ifindex, PACKET_MR_PROMISC, 0, b""))`, with `ifindex` from `socket.if_nametoindex`.
+- [x] Method `read() -> RawPacket | None` (data, `time_ns` timestamp, ifname, pkttype, hatype); uses `select`/`settimeout` so the loop can react to a stop request.
+- [x] Clear errors: `PermissionError` (no root), `OSError` for a nonexistent interface.
+- [x] SIGINT/SIGTERM set a stop flag; the main loop exits cleanly, without a traceback.
 - [ ] Check (root): `sudo python3 -m sniffer -i lo -c 5` together with `ping -c 3 127.0.0.1` in another terminal shows packets.
 
 ## Stage 2. pcap writing
