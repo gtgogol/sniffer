@@ -27,13 +27,15 @@ def _args(**kwargs: object) -> Args:
     return Args(**defaults)  # type: ignore[arg-type]
 
 
-def _pkt(n: int) -> RawPacket:
+def _pkt(n: int, *, pkttype: int = 0, hatype: int = 772) -> RawPacket:
+    data = bytes([n]) * 10
     return RawPacket(
-        data=bytes([n]) * 10,
+        data=data,
         time_ns=1_700_000_000_000_000_000 + n,
         ifname="lo",
-        pkttype=0,
-        hatype=772,
+        pkttype=pkttype,
+        hatype=hatype,
+        orig_len=len(data),
     )
 
 
@@ -117,6 +119,30 @@ def test_run_capture_writes_pcap(
     assert out.is_file()
     assert out.stat().st_size == 24 + 16 + 10 + 16 + 10
     assert "written=2" in capsys.readouterr().err
+
+
+def test_loopback_outgoing_dropped(capsys: pytest.CaptureFixture[str]) -> None:
+    from sniffer.capture import PACKET_OUTGOING
+
+    cap = MagicMock()
+    cap.__enter__.return_value = cap
+    cap.__exit__.return_value = None
+    # OUTGOING duplicate then a real ingress frame.
+    cap.read.side_effect = [
+        _pkt(1, pkttype=PACKET_OUTGOING, hatype=772),
+        _pkt(2, pkttype=0, hatype=772),
+    ]
+
+    with (
+        patch("sniffer.cli.RawCapture", return_value=cap),
+        patch("sniffer.cli._install_signal_handlers"),
+    ):
+        rc = run_capture(_args(count=1, quiet=True))
+
+    assert rc == 0
+    err = capsys.readouterr().err
+    assert "captured=1" in err
+    assert "passed=1" in err
 
 
 def test_stop_flag_exits_loop(capsys: pytest.CaptureFixture[str]) -> None:

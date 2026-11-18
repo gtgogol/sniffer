@@ -10,3 +10,7 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "root: tests that require root or CAP_NET_RAW",
     )
+    config.addinivalue_line(
+        "markers",
+        "benchmark: micro-benchmarks (parse throughput)",
+    )

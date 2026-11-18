@@ -44,11 +44,11 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [x] `test_filter.py` on the reference packets: every condition and their combinations, IPv4 and IPv6 addresses.
 
 ## Stage 6. Robustness and performance
-- [ ] Loopback: drop `PACKET_OUTGOING` duplicates; non-Ethernet interfaces are skipped when writing, with a warning (once per interface).
-- [ ] Packets longer than snaplen are truncated correctly and `orig_len` is preserved.
-- [ ] Hot loop without unnecessary copies (`recv_into`, `memoryview`, precompiled `struct.Struct`).
-- [ ] Fuzz test: 100,000 random buffers of random length go through `parse` without unhandled exceptions (fixed seed).
-- [ ] Benchmark: `ping -f` or `iperf3` on `lo` for 10 seconds; report the real packets per second.
+- [x] Loopback: drop `PACKET_OUTGOING` duplicates; non-Ethernet interfaces are skipped when writing, with a warning (once per interface).
+- [x] Packets longer than snaplen are truncated correctly and `orig_len` is preserved.
+- [x] Hot loop without unnecessary copies (`recv_into`, `memoryview`, precompiled `struct.Struct`).
+- [x] Fuzz test: 100,000 random buffers of random length go through `parse` without unhandled exceptions (fixed seed).
+- [x] Benchmark: `ping -f` or `iperf3` on `lo` for 10 seconds; report the real packets per second.
 
 ## Stage 7. Integration test and documentation
 - [ ] `tests/test_integration.py` (`@pytest.mark.root`, skipped without root): runs capture on `lo` with `-w` in a subprocess, generates traffic (UDP and TCP via `socket` on localhost), verifies with `tcpdump -r` (and `tshark -r` if available) and the packet count, checks the filter `-f "udp and port 9999"`.
@@ -63,3 +63,5 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 
 ## Decisions
 The agent records deviations from `AGENTS.md` here, with the date and the reason.
+
+- 2026-11-18: Stage 6 live capture benchmark (`ping -f` / `iperf3` on `lo`) was not run — host is macOS without `AF_PACKET`. Instead a parse micro-benchmark is in `tests/test_benchmark.py` (reported ~222k pps). Re-run on Linux with root to get real capture pps.

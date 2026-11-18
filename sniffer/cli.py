@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from sniffer.capture import (
     ARPHRD_ETHER,
     ARPHRD_LOOPBACK,
+    PACKET_OUTGOING,
     RawCapture,
 )
 from sniffer.filter import Filter, FilterSyntaxError, parse_filter
@@ -185,6 +186,13 @@ def run_capture(args: Args, packet_filter: Filter | None = None) -> int:
                 if pkt is None:
                     continue
 
+                # On loopback each frame is delivered twice; keep ingress only.
+                if (
+                    pkt.hatype == ARPHRD_LOOPBACK
+                    and pkt.pkttype == PACKET_OUTGOING
+                ):
+                    continue
+
                 captured += 1
 
                 is_ethernet = pkt.hatype in _ETHER_HTYPES
@@ -207,7 +215,7 @@ def run_capture(args: Args, packet_filter: Filter | None = None) -> int:
 
                 passed += 1
                 if writer is not None:
-                    writer.write(pkt.time_ns, pkt.data)
+                    writer.write(pkt.time_ns, pkt.data, orig_len=pkt.orig_len)
                     written = writer.written
 
                 if not args.quiet:

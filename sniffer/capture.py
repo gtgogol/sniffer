@@ -20,6 +20,8 @@ ARPHRD_ETHER = 1
 ARPHRD_LOOPBACK = 772
 
 _READ_TIMEOUT_S = 0.1
+# MSG_TRUNC: return value is the real packet length even if truncated.
+_MSG_TRUNC = getattr(socket, "MSG_TRUNC", 0x20)
 
 
 @dataclass(slots=True)
@@ -31,6 +33,7 @@ class RawPacket:
     ifname: str
     pkttype: int
     hatype: int
+    orig_len: int
 
 
 class RawCapture:
@@ -45,6 +48,8 @@ class RawCapture:
         self.promisc = promisc
         self.snaplen = snaplen
         self.sock: socket.socket | None = None
+        self._buf = bytearray(snaplen)
+        self._view = memoryview(self._buf)
 
     def __enter__(self) -> Self:
         self.open()
@@ -110,7 +115,11 @@ class RawCapture:
                 self.sock = None
 
     def read(self) -> RawPacket | None:
-        """Read one packet, or return None on timeout so the caller can stop."""
+        """Read one packet, or return None on timeout so the caller can stop.
+
+        Uses a preallocated buffer and ``MSG_TRUNC`` so ``orig_len`` reflects
+        the on-wire length even when the payload is truncated to snaplen.
+        """
         if self.sock is None:
             raise RuntimeError("RawCapture is not open")
 
@@ -118,8 +127,14 @@ class RawCapture:
         if not ready:
             return None
 
-        data, addr = self.sock.recvfrom(self.snaplen)
+        nbytes, addr = self.sock.recvfrom_into(
+            self._view, self.snaplen, _MSG_TRUNC
+        )
         time_ns = time.time_ns()
+        orig_len = nbytes
+        incl_len = min(nbytes, self.snaplen)
+        # Copy only the included slice; the ring buffer is reused.
+        data = bytes(self._view[:incl_len])
         # addr: (ifname, proto, pkttype, hatype, hardware_addr)
         ifname = addr[0]
         pkttype = int(addr[2])
@@ -130,4 +145,5 @@ class RawCapture:
             ifname=ifname,
             pkttype=pkttype,
             hatype=hatype,
+            orig_len=orig_len,
         )

@@ -21,6 +21,7 @@ def _pkt(data: bytes, ifname: str = "eth0") -> RawPacket:
         ifname=ifname,
         pkttype=0,
         hatype=1,
+        orig_len=len(data),
     )
 
 

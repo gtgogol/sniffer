@@ -88,25 +88,51 @@ def test_missing_iface_oserror(mock_socket_mod: MagicMock) -> None:
 
 def test_read_returns_packet(mock_socket_mod: MagicMock) -> None:
     payload = b"\xff" * 64
+
+    def _recvinto(buf: memoryview, nbytes: int, flags: int = 0) -> tuple:
+        buf[: len(payload)] = payload
+        return (len(payload), _fake_addr("lo", hatype=772))
+
     mock_socket_mod.select.return_value = ([7], [], [])
-    mock_socket_mod.sock.recvfrom.return_value = (payload, _fake_addr("lo", hatype=772))
+    mock_socket_mod.sock.recvfrom_into.side_effect = _recvinto
 
     with RawCapture(iface="lo", promisc=False, snaplen=65535) as cap:
         pkt = cap.read()
 
     assert isinstance(pkt, RawPacket)
     assert pkt.data == payload
+    assert pkt.orig_len == 64
     assert pkt.time_ns == 1_700_000_000_123_456_789
     assert pkt.ifname == "lo"
     assert pkt.pkttype == 0
     assert pkt.hatype == 772
 
 
+def test_read_truncates_preserves_orig_len(mock_socket_mod: MagicMock) -> None:
+    snaplen = 32
+
+    def _recvinto(buf: memoryview, nbytes: int, flags: int = 0) -> tuple:
+        # Wire length 100, only snaplen bytes fit in the buffer.
+        chunk = b"\xaa" * snaplen
+        buf[:snaplen] = chunk
+        return (100, _fake_addr("eth0"))
+
+    mock_socket_mod.select.return_value = ([7], [], [])
+    mock_socket_mod.sock.recvfrom_into.side_effect = _recvinto
+
+    with RawCapture(iface="eth0", promisc=False, snaplen=snaplen) as cap:
+        pkt = cap.read()
+
+    assert pkt is not None
+    assert len(pkt.data) == snaplen
+    assert pkt.orig_len == 100
+
+
 def test_read_timeout_returns_none(mock_socket_mod: MagicMock) -> None:
     mock_socket_mod.select.return_value = ([], [], [])
     with RawCapture(iface="eth0", promisc=False, snaplen=65535) as cap:
         assert cap.read() is None
-    mock_socket_mod.sock.recvfrom.assert_not_called()
+    mock_socket_mod.sock.recvfrom_into.assert_not_called()
 
 
 def test_read_before_open_raises() -> None:
