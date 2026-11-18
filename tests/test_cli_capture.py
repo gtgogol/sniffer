@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -92,6 +93,28 @@ def test_run_capture_quiet_no_packet_lines(
     out = capsys.readouterr()
     assert out.out == ""
     assert "captured=1" in out.err
+
+
+def test_run_capture_writes_pcap(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    out = tmp_path / "out.pcap"
+    cap = MagicMock()
+    cap.__enter__.return_value = cap
+    cap.__exit__.return_value = None
+    cap.read.side_effect = [_pkt(1), _pkt(2)]
+
+    with (
+        patch("sniffer.cli.RawCapture", return_value=cap),
+        patch("sniffer.cli._install_signal_handlers"),
+    ):
+        rc = run_capture(_args(count=2, quiet=True, write=str(out)))
+
+    assert rc == 0
+    assert out.is_file()
+    assert out.stat().st_size == 24 + 16 + 10 + 16 + 10
+    assert "written=2" in capsys.readouterr().err
 
 
 def test_stop_flag_exits_loop(capsys: pytest.CaptureFixture[str]) -> None:

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from sniffer.capture import RawCapture, RawPacket
+from sniffer.pcap_writer import PcapWriter
 
 # Set by SIGINT/SIGTERM handlers; the capture loop checks this flag.
 _stop_requested = False
@@ -162,7 +163,13 @@ def run_capture(args: Args) -> int:
         sys.stdout.reconfigure(line_buffering=True)
 
     captured = 0
+    written = 0
+    writer: PcapWriter | None = None
     try:
+        if args.write is not None:
+            writer = PcapWriter(args.write, snaplen=args.snaplen)
+            writer.open()
+
         with RawCapture(
             iface=args.interface,
             promisc=args.promisc,
@@ -174,6 +181,9 @@ def run_capture(args: Args) -> int:
                     continue
 
                 captured += 1
+                if writer is not None:
+                    writer.write(pkt.time_ns, pkt.data)
+                    written = writer.written
                 if not args.quiet:
                     print(_format_simple_line(pkt), flush=True)
 
@@ -190,9 +200,12 @@ def run_capture(args: Args) -> int:
     except (OSError, ValueError) as exc:
         print(f"sniffer: {exc}", file=sys.stderr)
         return 1
+    finally:
+        if writer is not None:
+            writer.close()
 
     print(
-        f"sniffer: captured={captured} passed={captured} written=0",
+        f"sniffer: captured={captured} passed={captured} written={written}",
         file=sys.stderr,
     )
     return 0

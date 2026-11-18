@@ -16,9 +16,9 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [ ] Check (root): `sudo python3 -m sniffer -i lo -c 5` together with `ping -c 3 127.0.0.1` in another terminal shows packets.
 
 ## Stage 2. pcap writing
-- [ ] `pcap_writer.py`: class `PcapWriter(path, snaplen, linktype=1)` — a context manager that writes the global header on open.
-- [ ] `write(ts_ns: int, data: bytes, orig_len: int | None = None)` — truncates to snaplen, keeps `orig_len`, calls `flush()` after each record.
-- [ ] `test_pcap_writer.py`: write 2 known packets to a temporary file and compare the bytes; if `dpkt` or `scapy` is installed, read the file back with it and compare (the test is skipped if the library is missing).
+- [x] `pcap_writer.py`: class `PcapWriter(path, snaplen, linktype=1)` — a context manager that writes the global header on open.
+- [x] `write(ts_ns: int, data: bytes, orig_len: int | None = None)` — truncates to snaplen, keeps `orig_len`, calls `flush()` after each record.
+- [x] `test_pcap_writer.py`: write 2 known packets to a temporary file and compare the bytes; if `dpkt` or `scapy` is installed, read the file back with it and compare (the test is skipped if the library is missing).
 - [ ] Check (root): `sudo python3 -m sniffer -i eth0 -w out.pcap -c 20 -q && tcpdump -nr out.pcap | wc -l` gives 20.
 
 ## Stage 3. Header parsing
