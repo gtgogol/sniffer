@@ -55,6 +55,8 @@ def test_run_capture_stops_at_count(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr()
     assert "len=10" in out.out
     assert "captured=2" in out.err
+    assert "passed=2" in out.err
+    assert "skipped=0" in out.err
 
 
 def test_run_capture_permission_error_message(

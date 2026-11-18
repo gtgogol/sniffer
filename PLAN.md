@@ -31,11 +31,11 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [x] `test_parse.py`: fields match the reference; a packet truncated at every length from 0 to full does not raise; unknown EtherType.
 
 ## Stage 4. Real-time output
-- [ ] `output.py`: `format_line(pkt: RawPacket, info: PacketInfo) -> str` in the format from `AGENTS.md`.
-- [ ] `hexdump(data: bytes) -> str`: 16-byte lines with an offset and an ASCII column, like `tcpdump -X`.
-- [ ] `-x` enables the dump, `-q` disables packet output; line-buffered stdout.
-- [ ] Final statistics on exit (captured, passed the filter, written, skipped as non-Ethernet).
-- [ ] `test_output.py` on the reference packets.
+- [x] `output.py`: `format_line(pkt: RawPacket, info: PacketInfo) -> str` in the format from `AGENTS.md`.
+- [x] `hexdump(data: bytes) -> str`: 16-byte lines with an offset and an ASCII column, like `tcpdump -X`.
+- [x] `-x` enables the dump, `-q` disables packet output; line-buffered stdout.
+- [x] Final statistics on exit (captured, passed the filter, written, skipped as non-Ethernet).
+- [x] `test_output.py` on the reference packets.
 
 ## Stage 5. Filtering
 - [ ] `filter.py`: `parse_filter(expr: str) -> Filter` (a list of conditions joined by `and`), `Filter.match(info: PacketInfo) -> bool`.

@@ -6,13 +6,19 @@ import argparse
 import signal
 import sys
 from dataclasses import dataclass
-from datetime import datetime
 
-from sniffer.capture import RawCapture, RawPacket
+from sniffer.capture import (
+    ARPHRD_ETHER,
+    ARPHRD_LOOPBACK,
+    RawCapture,
+)
+from sniffer.output import format_line, hexdump
+from sniffer.parse import parse
 from sniffer.pcap_writer import PcapWriter
 
 # Set by SIGINT/SIGTERM handlers; the capture loop checks this flag.
 _stop_requested = False
+_ETHER_HTYPES = frozenset({ARPHRD_ETHER, ARPHRD_LOOPBACK})
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,13 +151,6 @@ def _install_signal_handlers() -> None:
     signal.signal(signal.SIGTERM, _request_stop)
 
 
-def _format_simple_line(pkt: RawPacket) -> str:
-    """Minimal one-line summary until full parsing lands in later stages."""
-    ts = datetime.fromtimestamp(pkt.time_ns / 1_000_000_000)
-    stamp = ts.strftime("%H:%M:%S.") + f"{ts.microsecond:06d}"
-    return f"{stamp} {pkt.ifname} len={len(pkt.data)}"
-
-
 def run_capture(args: Args) -> int:
     """Open the capture socket and run the main loop until stop or count."""
     global _stop_requested
@@ -163,8 +162,13 @@ def run_capture(args: Args) -> int:
         sys.stdout.reconfigure(line_buffering=True)
 
     captured = 0
+    passed = 0
     written = 0
+    skipped_non_eth = 0
+    warned_ifaces: set[str] = set()
     writer: PcapWriter | None = None
+    # Parse when showing packets; filter comes in stage 5.
+    need_parse = not args.quiet
     try:
         if args.write is not None:
             writer = PcapWriter(args.write, snaplen=args.snaplen)
@@ -181,13 +185,34 @@ def run_capture(args: Args) -> int:
                     continue
 
                 captured += 1
+
+                is_ethernet = pkt.hatype in _ETHER_HTYPES
+                if not is_ethernet:
+                    skipped_non_eth += 1
+                    if pkt.ifname not in warned_ifaces:
+                        print(
+                            f"sniffer: skipping non-Ethernet link type "
+                            f"hatype={pkt.hatype} on {pkt.ifname}",
+                            file=sys.stderr,
+                        )
+                        warned_ifaces.add(pkt.ifname)
+
+                # Filter not implemented yet: every Ethernet frame passes.
+                if not is_ethernet:
+                    continue
+
+                passed += 1
                 if writer is not None:
                     writer.write(pkt.time_ns, pkt.data)
                     written = writer.written
-                if not args.quiet:
-                    print(_format_simple_line(pkt), flush=True)
 
-                if args.count is not None and captured >= args.count:
+                if need_parse:
+                    info = parse(pkt.data)
+                    print(format_line(pkt, info), flush=True)
+                    if args.hex:
+                        print(hexdump(pkt.data), flush=True)
+
+                if args.count is not None and passed >= args.count:
                     break
     except PermissionError:
         print(
@@ -205,7 +230,8 @@ def run_capture(args: Args) -> int:
             writer.close()
 
     print(
-        f"sniffer: captured={captured} passed={captured} written={written}",
+        f"sniffer: captured={captured} passed={passed} "
+        f"written={written} skipped={skipped_non_eth}",
         file=sys.stderr,
     )
     return 0
