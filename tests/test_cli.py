@@ -99,3 +99,13 @@ def test_unknown_flag_exits_2() -> None:
     with pytest.raises(SystemExit) as exc_info:
         parse_args(["--unknown"])
     assert exc_info.value.code == 2
+
+
+def test_invalid_filter_exits_2(capsys: pytest.CaptureFixture[str]) -> None:
+    from sniffer.cli import main
+
+    rc = main(["-f", "tcp or udp"])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "invalid filter" in err
+    assert "or" in err

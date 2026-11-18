@@ -12,6 +12,7 @@ from sniffer.capture import (
     ARPHRD_LOOPBACK,
     RawCapture,
 )
+from sniffer.filter import Filter, FilterSyntaxError, parse_filter
 from sniffer.output import format_line, hexdump
 from sniffer.parse import parse
 from sniffer.pcap_writer import PcapWriter
@@ -151,7 +152,7 @@ def _install_signal_handlers() -> None:
     signal.signal(signal.SIGTERM, _request_stop)
 
 
-def run_capture(args: Args) -> int:
+def run_capture(args: Args, packet_filter: Filter | None = None) -> int:
     """Open the capture socket and run the main loop until stop or count."""
     global _stop_requested
     _stop_requested = False
@@ -167,8 +168,8 @@ def run_capture(args: Args) -> int:
     skipped_non_eth = 0
     warned_ifaces: set[str] = set()
     writer: PcapWriter | None = None
-    # Parse when showing packets; filter comes in stage 5.
-    need_parse = not args.quiet
+    # Parse only when needed: screen output and/or a filter.
+    need_parse = (not args.quiet) or (packet_filter is not None)
     try:
         if args.write is not None:
             writer = PcapWriter(args.write, snaplen=args.snaplen)
@@ -196,18 +197,21 @@ def run_capture(args: Args) -> int:
                             file=sys.stderr,
                         )
                         warned_ifaces.add(pkt.ifname)
-
-                # Filter not implemented yet: every Ethernet frame passes.
-                if not is_ethernet:
                     continue
+
+                info = parse(pkt.data) if need_parse else None
+                if packet_filter is not None:
+                    assert info is not None
+                    if not packet_filter.match(info):
+                        continue
 
                 passed += 1
                 if writer is not None:
                     writer.write(pkt.time_ns, pkt.data)
                     written = writer.written
 
-                if need_parse:
-                    info = parse(pkt.data)
+                if not args.quiet:
+                    assert info is not None
                     print(format_line(pkt, info), flush=True)
                     if args.hex:
                         print(hexdump(pkt.data), flush=True)
@@ -240,4 +244,11 @@ def run_capture(args: Args) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Entry point used by ``python -m sniffer``."""
     args = parse_args(argv)
-    return run_capture(args)
+    packet_filter: Filter | None = None
+    if args.filter is not None:
+        try:
+            packet_filter = parse_filter(args.filter)
+        except FilterSyntaxError as exc:
+            print(f"sniffer: invalid filter: {exc}", file=sys.stderr)
+            return 2
+    return run_capture(args, packet_filter=packet_filter)

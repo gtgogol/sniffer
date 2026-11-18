@@ -38,10 +38,10 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [x] `test_output.py` on the reference packets.
 
 ## Stage 5. Filtering
-- [ ] `filter.py`: `parse_filter(expr: str) -> Filter` (a list of conditions joined by `and`), `Filter.match(info: PacketInfo) -> bool`.
-- [ ] A syntax error produces a clear message naming the bad token and exit code 2.
-- [ ] The filter is applied before output and before writing to pcap; `-c` counts only packets that passed.
-- [ ] `test_filter.py` on the reference packets: every condition and their combinations, IPv4 and IPv6 addresses.
+- [x] `filter.py`: `parse_filter(expr: str) -> Filter` (a list of conditions joined by `and`), `Filter.match(info: PacketInfo) -> bool`.
+- [x] A syntax error produces a clear message naming the bad token and exit code 2.
+- [x] The filter is applied before output and before writing to pcap; `-c` counts only packets that passed.
+- [x] `test_filter.py` on the reference packets: every condition and their combinations, IPv4 and IPv6 addresses.
 
 ## Stage 6. Robustness and performance
 - [ ] Loopback: drop `PACKET_OUTGOING` duplicates; non-Ethernet interfaces are skipped when writing, with a warning (once per interface).
