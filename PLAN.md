@@ -51,8 +51,8 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [x] Benchmark: `ping -f` or `iperf3` on `lo` for 10 seconds; report the real packets per second.
 
 ## Stage 7. Integration test and documentation
-- [ ] `tests/test_integration.py` (`@pytest.mark.root`, skipped without root): runs capture on `lo` with `-w` in a subprocess, generates traffic (UDP and TCP via `socket` on localhost), verifies with `tcpdump -r` (and `tshark -r` if available) and the packet count, checks the filter `-f "udp and port 9999"`.
-- [ ] `README.md` in Russian: installation, privileges (`sudo`), all flags, examples, limitations.
+- [x] `tests/test_integration.py` (`@pytest.mark.root`, skipped without root): runs capture on `lo` with `-w` in a subprocess, generates traffic (UDP and TCP via `socket` on localhost), verifies with `tcpdump -r` (and `tshark -r` if available) and the packet count, checks the filter `-f "udp and port 9999"`.
+- [x] `README.md` in Russian: installation, privileges (`sudo`), all flags, examples, limitations.
 
 ## Optional extensions (only after stage 7)
 - [ ] `or`, `not`, parentheses in the filter.
