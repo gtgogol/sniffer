@@ -22,13 +22,13 @@ Stage-by-stage implementation plan. Mark completed items with `[x]`. Every stage
 - [ ] Check (root): `sudo python3 -m sniffer -i eth0 -w out.pcap -c 20 -q && tcpdump -nr out.pcap | wc -l` gives 20.
 
 ## Stage 3. Header parsing
-- [ ] `PacketInfo` and nested dataclasses for Ethernet, IPv4, IPv6, TCP, UDP, ICMP; `truncated` and `malformed` flags.
-- [ ] Ethernet + one VLAN tag.
-- [ ] IPv4 with IHL and fragmentation.
-- [ ] IPv6 with extension header skipping.
-- [ ] TCP (flags, seq/ack), UDP; ICMP/ICMPv6 type and code only.
-- [ ] `tests/packets.py`: bytes of reference packets (TCP/IPv4 SYN, UDP/IPv6 DNS, VLAN, IPv4 with options, IPv6 with Hop-by-Hop, ICMP echo).
-- [ ] `test_parse.py`: fields match the reference; a packet truncated at every length from 0 to full does not raise; unknown EtherType.
+- [x] `PacketInfo` and nested dataclasses for Ethernet, IPv4, IPv6, TCP, UDP, ICMP; `truncated` and `malformed` flags.
+- [x] Ethernet + one VLAN tag.
+- [x] IPv4 with IHL and fragmentation.
+- [x] IPv6 with extension header skipping.
+- [x] TCP (flags, seq/ack), UDP; ICMP/ICMPv6 type and code only.
+- [x] `tests/packets.py`: bytes of reference packets (TCP/IPv4 SYN, UDP/IPv6 DNS, VLAN, IPv4 with options, IPv6 with Hop-by-Hop, ICMP echo).
+- [x] `test_parse.py`: fields match the reference; a packet truncated at every length from 0 to full does not raise; unknown EtherType.
 
 ## Stage 4. Real-time output
 - [ ] `output.py`: `format_line(pkt: RawPacket, info: PacketInfo) -> str` in the format from `AGENTS.md`.
